@@ -1,0 +1,179 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.Random;
+class SudokuGame extends JFrame {
+    private static final int SIZE = 9;
+    private static final int SUBGRID_SIZE = 3;
+    private int[][] solution;
+    private int[][] puzzle;
+    private JTextField[][] cells;
+    private JButton showSolutionBtn;
+    private JButton newGameBtn;
+    private Random random;
+    public SudokuGame() {
+        random = new Random();
+        initializeGUI();
+        generateNewPuzzle();
+    }
+    private void initializeGUI() {
+        setTitle("Sudoku Game");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+        JPanel gridPanel = new JPanel(new GridLayout(SIZE, SIZE, 2, 2));
+        gridPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        gridPanel.setBackground(Color.BLACK);
+        cells = new JTextField[SIZE][SIZE];
+        for (int row = 0; row < SIZE; row++) {
+            for (int col = 0; col < SIZE; col++) {
+                cells[row][col] = new JTextField();
+                cells[row][col].setHorizontalAlignment(JTextField.CENTER);
+                cells[row][col].setFont(new Font("Arial", Font.BOLD, 18));
+                cells[row][col].setPreferredSize(new Dimension(50, 50));
+                if (((row / SUBGRID_SIZE) + (col / SUBGRID_SIZE)) % 2 == 0) {
+                    cells[row][col].setBackground(new Color(240, 240, 240));
+                } else {
+                    cells[row][col].setBackground(Color.WHITE);
+                }
+                gridPanel.add(cells[row][col]);
+            }
+        }
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        showSolutionBtn = new JButton("Show Solution");
+        showSolutionBtn.setFont(new Font("Arial", Font.BOLD, 14));
+        showSolutionBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showSolution();
+            }
+        });
+        newGameBtn = new JButton("New Game");
+        newGameBtn.setFont(new Font("Arial", Font.BOLD, 14));
+        newGameBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                generateNewPuzzle();
+            }
+        });
+        buttonPanel.add(newGameBtn);
+        buttonPanel.add(showSolutionBtn);
+        add(gridPanel, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
+        pack();
+        setLocationRelativeTo(null);
+        setResizable(false);
+    }
+    private void generateNewPuzzle() {
+        solution = new int[SIZE][SIZE];
+        puzzle = new int[SIZE][SIZE];
+        generateCompleteSudoku(solution);
+        for (int i = 0; i < SIZE; i++) {
+            System.arraycopy(solution[i], 0, puzzle[i], 0, SIZE);
+        }
+        int numbersToRemove = 40 + random.nextInt(11);
+        for (int i = 0; i < numbersToRemove; i++) {
+            int row, col;
+            do {
+                row = random.nextInt(SIZE);
+                col = random.nextInt(SIZE);
+            } while (puzzle[row][col] == 0);
+
+            puzzle[row][col] = 0;
+        }
+        updateGrid();
+    }
+    private boolean generateCompleteSudoku(int[][] grid) {
+        for (int row = 0; row < SIZE; row++) {
+            for (int col = 0; col < SIZE; col++) {
+                if (grid[row][col] == 0) {
+                    int[] numbers = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+                    shuffleArray(numbers);
+                    for (int num : numbers) {
+                        if (isValidMove(grid, row, col, num)) {
+                            grid[row][col] = num;
+                            if (generateCompleteSudoku(grid)) {
+                                return true;
+                            }
+                            grid[row][col] = 0;
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    private void shuffleArray(int[] array) {
+        for (int i = array.length - 1; i > 0; i--) {
+            int index = random.nextInt(i + 1);
+            int temp = array[index];
+            array[index] = array[i];
+            array[i] = temp;
+        }
+    }
+    private boolean isValidMove(int[][] grid, int row, int col, int num) {
+        for (int c = 0; c < SIZE; c++) {
+            if (grid[row][c] == num) {
+                return false;
+            }
+        }
+        for (int r = 0; r < SIZE; r++) {
+            if (grid[r][col] == num) {
+                return false;
+            }
+        }
+        int startRow = (row / SUBGRID_SIZE) * SUBGRID_SIZE;
+        int startCol = (col / SUBGRID_SIZE) * SUBGRID_SIZE;
+        for (int r = startRow; r < startRow + SUBGRID_SIZE; r++) {
+            for (int c = startCol; c < startCol + SUBGRID_SIZE; c++) {
+                if (grid[r][c] == num) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    private void updateGrid() {
+        for (int row = 0; row < SIZE; row++) {
+            for (int col = 0; col < SIZE; col++) {
+                if (puzzle[row][col] != 0) {
+                    cells[row][col].setText(String.valueOf(puzzle[row][col]));
+                    cells[row][col].setEditable(false);
+                    cells[row][col].setFont(new Font("Arial", Font.BOLD, 18));
+                    cells[row][col].setForeground(Color.BLACK);
+                } else {
+                    cells[row][col].setText("");
+                    cells[row][col].setEditable(true);
+                    cells[row][col].setFont(new Font("Arial", Font.PLAIN, 18));
+                    cells[row][col].setForeground(Color.BLUE);
+                }
+            }
+        }
+    }
+    private void showSolution() {
+        for (int row = 0; row < SIZE; row++) {
+            for (int col = 0; col < SIZE; col++) {
+                cells[row][col].setText(String.valueOf(solution[row][col]));
+                cells[row][col].setEditable(false);
+                if (puzzle[row][col] == 0) {
+                    cells[row][col].setForeground(Color.RED);
+                    cells[row][col].setFont(new Font("Arial", Font.BOLD, 18));
+                }
+            }
+        }
+    }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                new SudokuGame().setVisible(true);
+            }
+        });
+    }
+}
